@@ -1,0 +1,75 @@
+version: "3.8"
+
+networks:
+  corpe-net:
+    name: corpe-net
+
+services:
+  #############################################
+  ##              Web Application            ##
+  #############################################
+  front:
+    build: ./front
+    container_name: front
+    stdin_open: true 
+    volumes:
+      - /usr/src/app/node_modules # Bookmarking
+      - ./front/:/usr/src/app
+    ports:
+      - "7000:7000"
+    networks:
+      corpe-net:
+        aliases:
+          - front
+
+  #############################################
+  ##                DATABASE                 ##
+  #############################################
+  corpe-db:
+    image: postgres
+    container_name: corpe-db
+    environment:
+      POSTGRES_DB: corpe
+      POSTGRES_USER: corpe
+      POSTGRES_PASSWORD: corpepw
+    ports:
+      - 5432:5432
+    volumes:
+      - ./corpe-datastore:/var/lib/postgresql/data
+    networks:
+      corpe-net:
+        aliases:
+          - corpe-db
+    
+  corpe-adminer:
+    image: adminer
+    container_name: corpe-adminer
+    restart: always
+    depends_on: 
+      - corpe-db
+    ports:
+      - 8080:8080
+    networks:
+      corpe-net:
+        aliases:
+          - corpe-adminer
+
+  #############################################
+  ##                   API                   ##
+  #############################################
+  api-v1-books:
+    build: ./api-v1-books
+    container_name: "api-v1-books"
+    volumes:
+      - /usr/src/app/node_modules # Bookmarking
+      - ./api-v1-books/:/usr/src/app
+    command: npm run dev
+    environment:
+      - DB_HOST=postgres://corpe:corpepw@corpe-db:5432/corpe
+      - PORT=20000
+    ports:
+      - "20000:20000"
+    networks:
+      corpe-net:
+        aliases:
+          - api-v1-books
